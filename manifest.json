@@ -1,0 +1,91 @@
+{
+  "id": "relationship-checkin",
+  "name": "Relationship Check-In",
+  "version": "1.0.0",
+  "description": "A weekly prompt for couples. Each partner answers privately, then both answers are revealed at the same time — no scoring, no right answers, just a structured conversation starter. Draws from a built-in deck; partners can add their own prompts.",
+  "entrypoint": "index.html",
+  "runtime": "static",
+  "icon": "💬",
+  "category": "couple",
+  "tags": ["couples", "adults", "relationship", "connection"],
+  "data_access": {
+    "reads": ["family.members"],
+    "writes": []
+  },
+  "permissions": {
+    "default_audience": "adults",
+    "requires_approval": false
+  },
+  "storage": "db",
+  "partner_link": {
+    "table": "partner_config",
+    "member_column": "member_id",
+    "partner_id_column": "partner_id",
+    "session_id_column": "session_id",
+    "require_role": "adult"
+  },
+  "row_policies": {
+    "partner_config": {
+      "kind": "owner_only",
+      "member_column": "member_id",
+      "adults_bypass": false,
+      "endpoint_writes_only": true
+    },
+    "responses": {
+      "kind": "owner_only",
+      "member_column": "member_id",
+      "adults_bypass": false,
+      "endpoint_writes_only": true
+    },
+    "submissions": {
+      "kind": "owner_only",
+      "member_column": "member_id",
+      "adults_bypass": false,
+      "endpoint_writes_only": true
+    },
+    "custom_questions": {
+      "kind": "couple_scoped",
+      "self_column": "created_by",
+      "participant_columns": ["created_by"],
+      "partner_table": "partner_config",
+      "partner_member_column": "member_id",
+      "partner_id_column": "partner_id",
+      "session_column": "session_id",
+      "partner_session_id_column": "session_id",
+      "require_reciprocal": true,
+      "delete_owner_only": true
+    }
+  },
+  "mutual_reveal": {
+    "partner_table": "partner_config",
+    "partner_member_column": "member_id",
+    "partner_id_column": "partner_id",
+    "partner_session_id_column": "session_id",
+    "responses_table": "responses",
+    "response_member_column": "member_id",
+    "response_key_column": "question_id",
+    "response_value_column": "answer",
+    "response_session_id_column": "session_id",
+    "submissions_table": "submissions",
+    "submission_member_column": "member_id",
+    "submitted_at_column": "submitted_at",
+    "revealed_at_column": "revealed_at",
+    "submission_session_id_column": "session_id",
+    "required_response_keys": ["weekly"],
+    "answers": { "kind": "text", "max_length": 1000 },
+    "custom_questions": {
+      "table": "custom_questions",
+      "id_column": "id",
+      "creator_column": "created_by",
+      "session_id_column": "session_id",
+      "text_column": "text",
+      "created_at_column": "created_at",
+      "max_length": 200
+    },
+    "require_reciprocal": true
+  },
+  "nav": { "label": "Check-In" },
+  "resource_limits": {
+    "max_db_bytes": 10485760
+  }
+}

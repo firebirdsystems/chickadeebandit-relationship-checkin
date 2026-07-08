@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Relationship Check-In</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: var(--hub-bg, #fdf2f8);
+      --surface: var(--hub-surface, #ffffff);
+      --border: var(--hub-border, #f3d6e4);
+      --border-mid: var(--hub-border, #e9b8ce);
+      --text: var(--hub-text, #3f1d2e);
+      --muted: var(--hub-text-muted, #9d6b81);
+      --accent: var(--hub-primary, #be185d);
+      --accent-hover: var(--hub-primary-hover, #9d174d);
+      --accent-fg: var(--hub-primary-fg, #ffffff);
+      --radius: var(--hub-radius, 12px);
+      --shadow: 0 1px 3px rgba(80, 20, 50, .08);
+    }
+    body { min-height: 100vh; background: var(--bg); color: var(--text); font-family: var(--hub-font, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif); font-size: var(--hub-font-size, 15px); line-height: 1.55; }
+    .app { max-width: 620px; margin: 0 auto; padding: 18px 16px 40px; }
+    .head { text-align: center; margin-bottom: 18px; }
+    h1 { font-size: 1.4rem; }
+    h2 { font-size: 1.1rem; margin-bottom: 6px; }
+    .muted { color: var(--muted); } .tiny { font-size: .8rem; }
+    .center { text-align: center; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; margin-bottom: 14px; }
+    .prompt { font-size: 1.05rem; font-weight: 650; margin-bottom: 8px; }
+    .prompt-badge { display: inline-block; font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); background: #fce7f3; border-radius: 999px; padding: 2px 9px; margin-bottom: 8px; }
+    textarea { width: 100%; border: 1.5px solid var(--border-mid); border-radius: 10px; padding: 10px 12px; font: inherit; background: var(--surface); color: var(--text); min-height: 84px; resize: vertical; }
+    textarea:focus { outline: none; border-color: var(--accent); }
+    input[type=text] { width: 100%; border: 1.5px solid var(--border-mid); border-radius: 10px; padding: 10px 12px; font: inherit; background: var(--surface); color: var(--text); }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid transparent; border-radius: 999px; padding: 11px 20px; font: inherit; font-size: .92rem; font-weight: 750; cursor: pointer; background: var(--accent); color: var(--accent-fg); }
+    .btn:hover { background: var(--accent-hover); }
+    .btn:disabled { opacity: .5; cursor: default; }
+    .btn-block { width: 100%; }
+    .btn-ghost { background: transparent; color: var(--accent); border-color: var(--border-mid); }
+    .btn-ghost:hover { background: #fdf2f8; }
+    .btn-sm { padding: 6px 12px; font-size: .8rem; }
+    .members { display: grid; gap: 8px; margin: 12px 0; }
+    .member-opt { display: flex; align-items: center; gap: 10px; border: 1.5px solid var(--border-mid); border-radius: 12px; padding: 11px 13px; cursor: pointer; }
+    .member-opt:hover { border-color: var(--accent); }
+    .member-opt input { accent-color: var(--accent); }
+    .answer-block { margin-top: 12px; }
+    .answer-block .who { font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 3px; }
+    .answer-block .txt { background: #fdf2f8; border-radius: 10px; padding: 9px 12px; white-space: pre-wrap; }
+    .answer-block.mine .txt { background: #eef6ff; }
+    .progress { height: 7px; background: #fce7f3; border-radius: 999px; overflow: hidden; margin: 10px 0; }
+    .progress > span { display: block; height: 100%; background: var(--accent); }
+    .customs { margin-top: 8px; }
+    .custom-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .85rem; padding: 6px 0; border-top: 1px dashed var(--border); }
+    .link { background: none; border: 0; color: var(--accent); font: inherit; font-weight: 700; cursor: pointer; padding: 0; }
+    .waiting-emoji { font-size: 2.4rem; }
+    .error { background: #fee2e2; color: #b91c1c; padding: 9px 12px; border-radius: 10px; margin-bottom: 12px; font-size: .86rem; }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(60,10,40,.4); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 50; }
+    .modal { background: var(--surface); border-radius: 14px; padding: 20px; width: 100%; max-width: 420px; box-shadow: 0 12px 40px rgba(0,0,0,.25); }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+    .char-count { text-align: right; font-size: .74rem; color: var(--muted); margin-top: 4px; }
+  </style>
+  <base href="/run/relationship-checkin/">
+</head>
+<body>
+<div class="app">
+  <div id="root" class="center muted" style="padding:40px;">Loading…</div>
+</div>
+
+<script type="module">
+import { esc, hubConfirm } from "/hub-sdk.js";
+import { buildQuestions, allAnswered, answeredCount, weeklyPrompt } from "./logic.js";
+
+const APP_ID = window.__APP_ID ?? "relationship-checkin";
+const CONTEXT = window.__CONTEXT_URL ?? "";
+const DB = window.__DB_URL ?? "";
+const ME = window.__CURRENT_MEMBER ?? null;
+
+let members = [];
+let partner = null;
+let partnerReciprocal = false;
+let partnerSessionId = null;
+let customs = [];
+let myAnswers = {};
+let mySubmission = null;       // { submitted_at, revealed_at } | null
+let partnerSubmission = null;  // { submitted_at, revealed_at } | null
+let partnerAnswers = {};
+let error = "";
+let modalEl = null;
+let pollTimer = null;
+
+function nowIso() { return new Date().toISOString(); }
+function api(path) { return `/run/${APP_ID}/api/${path}`; }
+
+async function db(sql, params = []) {
+  if (!DB) return { rows: [] };
+  const res = await fetch(DB, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sql, params }) });
+  const json = await res.json();
+  if (json.error) throw new Error(json.error);
+  return json;
+}
+
+async function post(path, body) {
+  const res = await fetch(api(path), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error ?? "Request failed");
+  return json;
+}
+
+// ── loading ──────────────────────────────────────────────────────────────────
+async function loadMembers() {
+  if (!CONTEXT) {
+    members = [{ id: "demo-1", name: "You", role: "adult" }, { id: "demo-2", name: "Sam", role: "adult" }];
+    return;
+  }
+  try { const r = await fetch(`${CONTEXT}?keys=family.members`); members = ((await r.json())["family.members"]) ?? []; }
+  catch { members = []; }
+}
+
+async function loadPartner() {
+  if (!ME) { partner = members.find(m => m.id !== "demo-1") ?? null; partnerReciprocal = true; partnerSessionId = "demo-session"; return; }
+  const res = await fetch(api("partner"));
+  const s = res.ok ? await res.json() : { partner_id: null, reciprocal: false };
+  partnerReciprocal = !!s.reciprocal;
+  partnerSessionId = s.session_id ?? null;
+  partner = s.partner_id ? (members.find(m => m.id === s.partner_id) ?? { id: s.partner_id, name: "Partner" }) : null;
+}
+
+async function loadStatus() {
+  if (!ME) return;
+  const res = await fetch(api("mutual-reveal"));
+  if (!res.ok) return;
+  const s = await res.json();
+  partnerReciprocal = !!s.reciprocal;
+  partnerSessionId = s.session_id ?? partnerSessionId;
+  mySubmission = s.mine;
+  partnerSubmission = s.theirs;
+  if (s.partner_answers) partnerAnswers = s.partner_answers;
+}
+
+async function loadCustoms() {
+  if (!DB) { customs = []; return; }
+  try {
+    const r = await db("SELECT id, text, created_by, created_at FROM app_relationship_checkin__custom_questions WHERE session_id = ? ORDER BY created_at ASC", [partnerSessionId]);
+    customs = r.rows;
+  } catch { customs = []; }
+}
+
+async function loadMyAnswers() {
+  if (!DB || !ME) return;
+  try {
+    const r = await db("SELECT question_id, answer FROM app_relationship_checkin__responses WHERE member_id = ? AND session_id = ?", [ME.id, partnerSessionId]);
+    myAnswers = Object.fromEntries(r.rows.map(x => [x.question_id, x.answer]));
+  } catch { myAnswers = {}; }
+}
+
+async function refresh() {
+  error = "";
+  try {
+    await loadMembers();
+    await loadPartner();
+    if (partner && partnerReciprocal) {
+      await loadStatus();
+      await Promise.all([loadCustoms(), loadMyAnswers()]);
+    }
+    route();
+  } catch (e) { error = e.message; render(renderSetup()); }
+}
+
+function questions() { return buildQuestions(customs); }
+
+// ── actions ──────────────────────────────────────────────────────────────────
+async function savePartner(partnerId) {
+  try {
+    if (ME) {
+      const s = await post("partner", { partner_id: partnerId });
+      partnerReciprocal = !!s.reciprocal;
+      partnerSessionId = s.session_id ?? null;
+    }
+    partner = members.find(m => m.id === partnerId) ?? null;
+    if (!ME) { partnerReciprocal = true; partnerSessionId = "demo-session"; }
+    if (partner && partnerReciprocal) await Promise.all([loadStatus(), loadCustoms(), loadMyAnswers()]);
+    route();
+  } catch (e) { showError(e.message); }
+}
+
+async function lockIn() {
+  const qs = questions();
+  const answers = {};
+  for (const q of qs) {
+    const el = document.getElementById(`ans-${q.id}`);
+    answers[q.id] = el ? el.value : (myAnswers[q.id] ?? "");
+  }
+  myAnswers = answers;
+  if (!allAnswered(qs, answers)) { showError("Answer every prompt before locking in."); return; }
+
+  const btn = document.getElementById("lockin-btn");
+  if (btn) { btn.disabled = true; btn.textContent = "Locking in…"; }
+  try {
+    if (ME) {
+      for (const q of qs) await post("mutual-reveal", { action: "answer", question_id: q.id, answer: answers[q.id].trim() });
+      const s = await post("mutual-reveal", { action: "submit" });
+      mySubmission = s.mine; partnerSubmission = s.theirs;
+    } else {
+      mySubmission = { submitted_at: nowIso(), revealed_at: null };
+      partnerSubmission = { submitted_at: nowIso(), revealed_at: null }; // demo partner auto-locks
+    }
+    route();
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = "Lock in my answers"; }
+    showError(e.message);
+  }
+}
+
+async function reveal() {
+  const btn = document.getElementById("reveal-btn");
+  if (btn) { btn.disabled = true; btn.textContent = "Revealing…"; }
+  try {
+    if (ME) {
+      const s = await post("mutual-reveal", { action: "reveal" });
+      mySubmission = s.mine; partnerSubmission = s.theirs;
+      partnerAnswers = s.partner_answers ?? {};
+      if (!partnerSubmission?.revealed_at) { await loadStatus(); }
+    } else {
+      mySubmission = { ...mySubmission, revealed_at: nowIso() };
+      partnerSubmission = { ...partnerSubmission, revealed_at: nowIso() };
+      partnerAnswers = Object.fromEntries(questions().map(q => [q.id, "(In the real app, your partner's answer appears here.)"]));
+    }
+    route();
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = "Reveal together"; }
+    showError(e.message);
+  }
+}
+
+async function startNew() {
+  const ok = await hubConfirm({ message: "Start a fresh check-in?", description: "This clears your answers so you can go again. Your partner does the same on their side.", confirmLabel: "Start fresh" });
+  if (!ok) return;
+  try {
+    if (ME) await post("mutual-reveal", { action: "reset" });
+    myAnswers = {}; mySubmission = null; partnerSubmission = null; partnerAnswers = {};
+    route();
+  } catch (e) { showError(e.message); }
+}
+
+async function addCustom(text) {
+  const t = text.trim();
+  if (!t) return;
+  const id = `custom-${crypto.randomUUID()}`;
+  const row = { id, text: t, created_by: ME?.id ?? "demo-1", created_at: nowIso() };
+  try {
+    if (DB) {
+      await db(
+        "INSERT INTO app_relationship_checkin__custom_questions (id, created_by, text, session_id, created_at) VALUES (?, ?, ?, ?, ?)",
+        [id, row.created_by, t, partnerSessionId, row.created_at]
+      );
+    }
+    customs = [...customs, row];
+    closeModal();
+    route();
+  } catch (e) { showError(e.message); }
+}
+
+async function removeCustom(id) {
+  try {
+    if (DB) await db("DELETE FROM app_relationship_checkin__custom_questions WHERE id = ?", [id]);
+    customs = customs.filter(c => c.id !== id);
+    delete myAnswers[id];
+    route();
+  } catch (e) { showError(e.message); }
+}
+
+// ── polling on waiting screens ───────────────────────────────────────────────
+function startPolling() {
+  stopPolling();
+  if (!ME) return;
+  pollTimer = setInterval(async () => {
+    try { await loadStatus(); route(); } catch {}
+  }, 5000);
+}
+function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+
+// ── modal ────────────────────────────────────────────────────────────────────
+function openModal(html) {
+  closeModal();
+  modalEl = document.createElement("div");
+  modalEl.className = "modal-backdrop";
+  modalEl.innerHTML = `<div class="modal">${html}</div>`;
+  modalEl.addEventListener("click", e => { if (e.target === modalEl) closeModal(); });
+  document.body.appendChild(modalEl);
+  const f = modalEl.querySelector("[data-autofocus]");
+  if (f) f.focus();
+}
+function closeModal() { modalEl?.remove(); modalEl = null; }
+
+function showError(m) { error = m; const box = document.getElementById("err"); if (box) { box.textContent = m; box.style.display = "block"; } }
+
+// ── views ────────────────────────────────────────────────────────────────────
+function shell(inner) {
+  return `
+    <div class="head">
+      <h1>💬 Relationship Check-In</h1>
+      <p class="muted tiny">Answer privately, then reveal together.</p>
+    </div>
+    <div id="err" class="error" style="display:${error ? "block" : "none"}">${esc(error)}</div>
+    ${inner}
+  `;
+}
+
+function renderSetup() {
+  const others = members.filter(m => m.id !== ME?.id);
+  return shell(`
+    <div class="card">
+      <h2>Who are you checking in with?</h2>
+      <p class="muted tiny">Pick your partner. They'll pick you back, and then you're connected privately.</p>
+      <div class="members">
+        ${others.length ? others.map(m => `
+          <label class="member-opt">
+            <input type="radio" name="partner" value="${esc(m.id)}" />
+            <span>${esc(m.name)}</span>
+          </label>`).join("") : `<p class="muted">No one else in the household yet.</p>`}
+      </div>
+      <button class="btn btn-block" data-save-partner ${others.length ? "" : "disabled"}>Connect</button>
+    </div>
+  `);
+}
+
+function renderWaitingReciprocal() {
+  return shell(`
+    <div class="card center">
+      <div class="waiting-emoji">💌</div>
+      <h2>Waiting for ${esc(partner?.name ?? "your partner")}</h2>
+      <p class="muted">You've chosen them. Once they choose you back, you can start your first check-in.</p>
+      <button class="btn btn-ghost btn-sm" data-refresh style="margin-top:10px;">Check again</button>
+    </div>
+  `);
+}
+
+function renderQuestionnaire() {
+  const qs = questions();
+  const done = answeredCount(qs, currentAnswers());
+  return shell(`
+    <div class="card">
+      <div class="prompt-badge">This week's prompt</div>
+      <div class="prompt">${esc(qs[0].text)}</div>
+      <textarea id="ans-weekly" placeholder="Your honest answer — just for the two of you.">${esc(myAnswers.weekly ?? "")}</textarea>
+    </div>
+    ${qs.slice(1).map(q => `
+      <div class="card">
+        <div class="prompt-badge">Your prompt</div>
+        <div class="prompt">${esc(q.text)}</div>
+        <textarea id="ans-${esc(q.id)}" placeholder="Your answer">${esc(myAnswers[q.id] ?? "")}</textarea>
+        <div class="center" style="margin-top:8px;"><button class="link" data-remove-custom="${esc(q.id)}">Remove this prompt</button></div>
+      </div>`).join("")}
+    <div class="card">
+      <button class="link" data-add-custom>＋ Add your own prompt</button>
+      <div class="progress"><span style="width:${qs.length ? Math.round(done / qs.length * 100) : 0}%"></span></div>
+      <p class="tiny muted center">Your answers stay private until you've both locked in and revealed.</p>
+      <button class="btn btn-block" id="lockin-btn" data-lockin>Lock in my answers</button>
+    </div>
+  `);
+}
+
+function renderWaitingPartner() {
+  return shell(`
+    <div class="card center">
+      <div class="waiting-emoji">🔒</div>
+      <h2>Locked in!</h2>
+      <p class="muted">Your answers are sealed. We'll reveal them the moment ${esc(partner?.name ?? "your partner")} locks in too.</p>
+      <button class="btn btn-ghost btn-sm" data-refresh style="margin-top:10px;">Check again</button>
+    </div>
+  `);
+}
+
+function renderRevealGate() {
+  const iRevealed = !!mySubmission?.revealed_at;
+  if (iRevealed) {
+    return shell(`
+      <div class="card center">
+        <div class="waiting-emoji">✨</div>
+        <h2>Ready when they are</h2>
+        <p class="muted">You've revealed. As soon as ${esc(partner?.name ?? "your partner")} taps reveal, you'll see each other's answers.</p>
+        <button class="btn btn-ghost btn-sm" data-refresh style="margin-top:10px;">Check again</button>
+      </div>
+    `);
+  }
+  return shell(`
+    <div class="card center">
+      <div class="waiting-emoji">💞</div>
+      <h2>You're both locked in</h2>
+      <p class="muted">Reveal together to see each other's answers at the same time.</p>
+      <button class="btn btn-block" id="reveal-btn" data-reveal style="margin-top:12px;">Reveal together</button>
+    </div>
+  `);
+}
+
+function renderResults() {
+  const qs = questions();
+  return shell(`
+    <div class="card center">
+      <h2>Your check-in 💞</h2>
+      <p class="muted tiny">No scoring, no right answers — just a place to start talking.</p>
+    </div>
+    ${qs.map(q => `
+      <div class="card">
+        <div class="prompt">${esc(q.text)}</div>
+        <div class="answer-block mine">
+          <div class="who">You</div>
+          <div class="txt">${esc(myAnswers[q.id] ?? "—")}</div>
+        </div>
+        <div class="answer-block">
+          <div class="who">${esc(partner?.name ?? "Partner")}</div>
+          <div class="txt">${esc(partnerAnswers[q.id] ?? "—")}</div>
+        </div>
+      </div>`).join("")}
+    <button class="btn btn-block" data-start-new>Start a new check-in</button>
+  `);
+}
+
+function currentAnswers() {
+  // read live textarea values if present, else stored
+  const qs = questions();
+  const out = { ...myAnswers };
+  for (const q of qs) { const el = document.getElementById(`ans-${q.id}`); if (el) out[q.id] = el.value; }
+  return out;
+}
+
+function render(html) {
+  const root = document.getElementById("root");
+  root.className = "";
+  root.innerHTML = html;
+}
+
+function route() {
+  stopPolling();
+  if (!partner) return render(renderSetup());
+  if (!partnerReciprocal) { render(renderWaitingReciprocal()); startPolling(); return; }
+  if (!mySubmission) return render(renderQuestionnaire());
+  if (!partnerSubmission) { render(renderWaitingPartner()); startPolling(); return; }
+  if (!(mySubmission.revealed_at && partnerSubmission.revealed_at)) { render(renderRevealGate()); startPolling(); return; }
+  render(renderResults());
+}
+
+// ── events ───────────────────────────────────────────────────────────────────
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("button, [data-save-partner]");
+  if (!t) return;
+  if (t.hasAttribute("data-save-partner")) {
+    const sel = document.querySelector('input[name="partner"]:checked');
+    if (!sel) { showError("Choose your partner first."); return; }
+    savePartner(sel.value); return;
+  }
+  if (t.hasAttribute("data-refresh")) { loadStatusAndRoute(); return; }
+  if (t.hasAttribute("data-lockin")) { lockIn(); return; }
+  if (t.hasAttribute("data-reveal")) { reveal(); return; }
+  if (t.hasAttribute("data-start-new")) { startNew(); return; }
+  if (t.hasAttribute("data-add-custom")) { openCustomModal(); return; }
+  if (t.hasAttribute("data-remove-custom")) { removeCustom(t.getAttribute("data-remove-custom")); return; }
+  if (t.hasAttribute("data-close")) { closeModal(); return; }
+  if (t.hasAttribute("data-save-custom")) {
+    const input = document.getElementById("custom-input");
+    addCustom(input ? input.value : ""); return;
+  }
+});
+
+async function loadStatusAndRoute() {
+  try { await loadPartner(); if (partner && partnerReciprocal) { await loadStatus(); await Promise.all([loadCustoms(), loadMyAnswers()]); } route(); }
+  catch (e) { showError(e.message); }
+}
+
+function openCustomModal() {
+  openModal(`
+    <h2>Add your own prompt</h2>
+    <p class="muted tiny">Your partner will answer it too, in this check-in.</p>
+    <input type="text" id="custom-input" data-autofocus maxlength="200" placeholder="e.g. What's one thing you'd love to plan together?" />
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" type="button" data-close>Cancel</button>
+      <button class="btn btn-sm" type="button" data-save-custom>Add prompt</button>
+    </div>
+  `);
+}
+
+refresh();
+</script>
+</body>
+</html>
