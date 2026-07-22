@@ -1,5 +1,6 @@
 {
   "id": "relationship-checkin",
+  "contexts": ["household", "shared_space"],
   "name": "Relationship Check-In",
   "version": "1.0.0",
   "description": "A weekly prompt for couples. Each partner answers privately, then both answers are revealed at the same time — no scoring, no right answers, just a structured conversation starter. Draws from a built-in deck; partners can add their own prompts.",
