@@ -25,6 +25,18 @@
     "session_id_column": "session_id",
     "require_role": "adult"
   },
+  "delete_cascades": {
+    "custom_questions": [{ "table": "responses", "foreign_key": "question_id" }]
+  },
+  "member_references": {
+    "partner_config": [
+      { "column": "member_id", "on_removed": "delete", "id_column": "rowid" },
+      { "column": "partner_id", "on_removed": "delete", "id_column": "rowid" }
+    ],
+    "responses": { "column": "member_id", "on_removed": "delete", "id_column": "rowid" },
+    "submissions": { "column": "member_id", "on_removed": "delete", "id_column": "rowid" },
+    "custom_questions": { "column": "created_by", "on_removed": "keep" }
+  },
   "row_policies": {
     "partner_config": {
       "kind": "owner_only",
@@ -86,6 +98,7 @@
     "require_reciprocal": true
   },
   "nav": { "label": "Check-In" },
+  "kiosk": "never",
   "resource_limits": {
     "max_db_bytes": 10485760
   }

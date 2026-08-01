@@ -260,6 +260,16 @@ async function addCustom(text) {
   } catch (e) { showError(e.message); }
 }
 
+/**
+ * Removing a custom prompt also removes both partners' answers to it, through
+ * `manifest.delete_cascades`. It has to happen hub-side: `responses` is
+ * owner_only + endpoint_writes_only, so no app SQL may ever delete a response
+ * row, and the mutual-reveal endpoint only ever writes them. Without the
+ * cascade the answers to a deleted question were invisible (the prompt they
+ * belonged to was gone), undeletable by anyone, and cleared only if that member
+ * later hit "Start fresh" — which wipes every answer they have, including the
+ * ones they meant to keep.
+ */
 async function removeCustom(id) {
   try {
     if (DB) await db("DELETE FROM app_relationship_checkin__custom_questions WHERE id = ?", [id]);
