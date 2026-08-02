@@ -97,6 +97,13 @@
     },
     "require_reciprocal": true
   },
+  "glance": {
+    "source": {
+      "kind": "sql",
+      "query": "SELECT COUNT(*) AS n FROM app_relationship_checkin__submissions WHERE revealed_at IS NULL OR revealed_at = '' LIMIT 1"
+    },
+    "display": { "template": "badge", "count": "n", "label": "check-in waiting to reveal", "severity": "info" }
+  },
   "nav": { "label": "Check-In" },
   "kiosk": "never",
   "resource_limits": {
