@@ -305,14 +305,17 @@ function closeModal() { modalEl?.remove(); modalEl = null; }
 function showError(m) { error = m; const box = document.getElementById("err"); if (box) { box.textContent = m; box.style.display = "block"; } }
 
 // ── views ────────────────────────────────────────────────────────────────────
-function shell(inner) {
+// `view` names the route destination this shell is rendering. #root is replaced
+// wholesale on every route, so exactly one view marker exists at a time and a
+// scenario can settle on the state it means to assert before asserting in it.
+function shell(inner, view) {
   return `
     <div class="head">
       <h1>💬 Relationship Check-In</h1>
       <p class="muted tiny">Answer privately, then reveal together.</p>
     </div>
     <div id="err" class="error" style="display:${error ? "block" : "none"}">${esc(error)}</div>
-    ${inner}
+    <div data-testid="view-${view}">${inner}</div>
   `;
 }
 
@@ -331,7 +334,7 @@ function renderSetup() {
       </div>
       <button class="btn btn-block" data-save-partner ${others.length ? "" : "disabled"}>Connect</button>
     </div>
-  `);
+  `, "setup");
 }
 
 function renderWaitingReciprocal() {
@@ -342,7 +345,7 @@ function renderWaitingReciprocal() {
       <p class="muted">You've chosen them. Once they choose you back, you can start your first check-in.</p>
       <button class="btn btn-ghost btn-sm" data-refresh style="margin-top:10px;">Check again</button>
     </div>
-  `);
+  `, "waiting-reciprocal");
 }
 
 function renderQuestionnaire() {
@@ -367,7 +370,7 @@ function renderQuestionnaire() {
       <p class="tiny muted center">Your answers stay private until you've both locked in and revealed.</p>
       <button class="btn btn-block" id="lockin-btn" data-lockin>Lock in my answers</button>
     </div>
-  `);
+  `, "questionnaire");
 }
 
 function renderWaitingPartner() {
@@ -378,7 +381,7 @@ function renderWaitingPartner() {
       <p class="muted">Your answers are sealed. We'll reveal them the moment ${esc(partner?.name ?? "your partner")} locks in too.</p>
       <button class="btn btn-ghost btn-sm" data-refresh style="margin-top:10px;">Check again</button>
     </div>
-  `);
+  `, "waiting-partner");
 }
 
 function renderRevealGate() {
@@ -391,7 +394,7 @@ function renderRevealGate() {
         <p class="muted">You've revealed. As soon as ${esc(partner?.name ?? "your partner")} taps reveal, you'll see each other's answers.</p>
         <button class="btn btn-ghost btn-sm" data-refresh style="margin-top:10px;">Check again</button>
       </div>
-    `);
+    `, "reveal-sent");
   }
   return shell(`
     <div class="card center">
@@ -400,7 +403,7 @@ function renderRevealGate() {
       <p class="muted">Reveal together to see each other's answers at the same time.</p>
       <button class="btn btn-block" id="reveal-btn" data-reveal style="margin-top:12px;">Reveal together</button>
     </div>
-  `);
+  `, "reveal");
 }
 
 function renderResults() {
@@ -411,19 +414,19 @@ function renderResults() {
       <p class="muted tiny">No scoring, no right answers — just a place to start talking.</p>
     </div>
     ${qs.map(q => `
-      <div class="card">
+      <div class="card" data-testid="result-card" data-question-id="${esc(q.id)}">
         <div class="prompt">${esc(q.text)}</div>
         <div class="answer-block mine">
           <div class="who">You</div>
-          <div class="txt">${esc(myAnswers[q.id] ?? "—")}</div>
+          <div class="txt" data-testid="answer-text" data-who="me" data-answered="${myAnswers[q.id] ? "yes" : "no"}">${esc(myAnswers[q.id] ?? "—")}</div>
         </div>
         <div class="answer-block">
           <div class="who">${esc(partner?.name ?? "Partner")}</div>
-          <div class="txt">${esc(partnerAnswers[q.id] ?? "—")}</div>
+          <div class="txt" data-testid="answer-text" data-who="partner" data-answered="${partnerAnswers[q.id] ? "yes" : "no"}">${esc(partnerAnswers[q.id] ?? "—")}</div>
         </div>
       </div>`).join("")}
     <button class="btn btn-block" data-start-new>Start a new check-in</button>
-  `);
+  `, "results");
 }
 
 function currentAnswers() {

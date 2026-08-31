@@ -1,0 +1,200 @@
+{
+  "scenarios": [
+    {
+      "name": "a partner's answers are absent from the render until both reveal, and a stale-session answer never joins them",
+      "members": {
+        "a": "adult",
+        "b": "adult"
+      },
+      "steps": [
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_relationship_checkin__partner_config (member_id, partner_id, session_id) VALUES (?, ?, ?)",
+          "params": [
+            "{{a}}",
+            "{{b}}",
+            "sess-ab"
+          ]
+        },
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_relationship_checkin__partner_config (member_id, partner_id, session_id) VALUES (?, ?, ?)",
+          "params": [
+            "{{b}}",
+            "{{a}}",
+            "sess-ab"
+          ]
+        },
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_relationship_checkin__custom_questions (id, created_by, text, session_id, created_at) VALUES (?, ?, ?, ?, ?)",
+          "params": [
+            "cq1",
+            "{{a}}",
+            "What should we do differently next week?",
+            "sess-ab",
+            "2026-01-01T00:00:00Z"
+          ]
+        },
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, ?)",
+          "params": [
+            "{{a}}",
+            "weekly",
+            "Partner A weekly answer",
+            "sess-ab",
+            "2026-01-01T00:00:00Z"
+          ]
+        },
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, ?)",
+          "params": [
+            "{{a}}",
+            "cq1",
+            "Partner A stale answer",
+            "sess-old",
+            "2026-01-01T00:00:00Z"
+          ]
+        },
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, ?)",
+          "params": [
+            "{{b}}",
+            "weekly",
+            "Member B weekly answer",
+            "sess-ab",
+            "2026-01-01T00:00:00Z"
+          ]
+        },
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, ?)",
+          "params": [
+            "{{b}}",
+            "cq1",
+            "Member B custom answer",
+            "sess-ab",
+            "2026-01-01T00:00:00Z"
+          ]
+        },
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_relationship_checkin__submissions (member_id, submitted_at, revealed_at, session_id) VALUES (?, ?, ?, ?)",
+          "params": [
+            "{{a}}",
+            "2026-01-01T00:00:00Z",
+            "2026-01-01T00:00:01Z",
+            "sess-ab"
+          ]
+        },
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_relationship_checkin__submissions (member_id, submitted_at, session_id) VALUES (?, ?, ?)",
+          "params": [
+            "{{b}}",
+            "2026-01-01T00:00:00Z",
+            "sess-ab"
+          ]
+        },
+        {
+          "action": "open",
+          "as": "b"
+        },
+        {
+          "action": "expectVisible",
+          "selector": "[data-testid=\"view-reveal\"]",
+          "as": "b"
+        },
+        {
+          "action": "seedRaw",
+          "sql": "UPDATE app_relationship_checkin__submissions SET revealed_at = ? WHERE member_id = ?",
+          "params": [
+            "2026-01-01T00:00:02Z",
+            "{{b}}"
+          ]
+        },
+        {
+          "action": "reload",
+          "as": "b"
+        },
+        {
+          "action": "expectVisible",
+          "selector": "[data-testid=\"view-results\"]",
+          "as": "b"
+        },
+        {
+          "action": "expectCount",
+          "selector": "[data-testid=\"result-card\"][data-question-id=\"cq1\"] [data-testid=\"answer-text\"][data-who=\"partner\"][data-answered=\"yes\"]",
+          "count": 0,
+          "as": "b"
+        },
+        {
+          "action": "expectCount",
+          "selector": "[data-testid=\"answer-text\"][data-who=\"partner\"][data-answered=\"yes\"]",
+          "count": 1,
+          "as": "b"
+        },
+        {
+          "action": "expectText",
+          "selector": "[data-testid=\"result-card\"][data-question-id=\"weekly\"] [data-testid=\"answer-text\"][data-who=\"partner\"]",
+          "text": "Partner A weekly answer",
+          "as": "b"
+        },
+        {
+          "action": "expectText",
+          "selector": "[data-testid=\"result-card\"][data-question-id=\"cq1\"] [data-testid=\"answer-text\"][data-who=\"me\"]",
+          "text": "Member B custom answer",
+          "as": "b"
+        }
+      ]
+    },
+    {
+      "name": "a one-sided pairing waits instead of opening the check-in",
+      "members": {
+        "a": "adult",
+        "b": "adult"
+      },
+      "steps": [
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_relationship_checkin__partner_config (member_id, partner_id, session_id) VALUES (?, ?, ?)",
+          "params": [
+            "{{a}}",
+            "{{b}}",
+            "sess-ab"
+          ]
+        },
+        {
+          "action": "open",
+          "as": "a"
+        },
+        {
+          "action": "expectVisible",
+          "selector": "[data-testid=\"view-waiting-reciprocal\"]",
+          "as": "a"
+        },
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_relationship_checkin__partner_config (member_id, partner_id, session_id) VALUES (?, ?, ?)",
+          "params": [
+            "{{b}}",
+            "{{a}}",
+            "sess-ab"
+          ]
+        },
+        {
+          "action": "reload",
+          "as": "a"
+        },
+        {
+          "action": "expectVisible",
+          "selector": "[data-testid=\"view-questionnaire\"]",
+          "as": "a"
+        }
+      ]
+    }
+  ]
+}
