@@ -67,7 +67,18 @@
 </div>
 
 <script type="module">
-import { esc, hubConfirm } from "/hub-sdk.js";
+import { esc, hubConfirm, hubToday } from "/hub-sdk.js";
+
+// The household's calendar day as a Date, for the pure helpers in logic.js.
+// Those helpers default their date parameter to `new Date()` — the VIEWER
+// DEVICE's calendar — but they compare it against dates STORED on the household
+// calendar, which is what every server-side surface (glance, kiosk, cron,
+// `:today` in declared SQL) reports. Near midnight, or for a member in another
+// timezone, the two name different days. logic.js stays pure and SDK-free, so
+// the household day is supplied here. Noon keeps a DST shift from tipping it
+// into an adjacent day.
+const hubDay = () => new Date(`${hubToday()}T12:00:00`);
+
 import { buildQuestions, allAnswered, answeredCount, weeklyPrompt } from "./logic.js";
 
 const APP_ID = window.__APP_ID ?? "relationship-checkin";
@@ -166,7 +177,7 @@ async function refresh() {
   } catch (e) { error = e.message; render(renderSetup()); }
 }
 
-function questions() { return buildQuestions(customs); }
+function questions() { return buildQuestions(customs, hubDay()); }
 
 // ── actions ──────────────────────────────────────────────────────────────────
 async function savePartner(partnerId) {
