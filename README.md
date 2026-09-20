@@ -1,5 +1,7 @@
 # Relationship Check-In
 
+A [Chickadee Bandit](https://chickadeebandit.com/app-library/relationship-checkin) app.
+
 A weekly prompt for couples. Each partner answers **privately**, then both
 answers are **revealed at the same time** — no scoring, no right answers, just a
 structured conversation starter. Draws from a built-in deck of connection
