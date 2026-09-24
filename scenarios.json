@@ -1,0 +1,233 @@
+{
+  "scenarios": [
+    {
+      "name": "each partner's answers and submission stay private even from the reciprocal partner, and cannot be written via app SQL",
+      "members": {
+        "a": "adult",
+        "b": "adult"
+      },
+      "steps": [
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_relationship_checkin__partner_config (member_id, partner_id, session_id) VALUES (?, ?, 'sess-ab'), (?, ?, 'sess-ab')",
+          "params": [
+            "{{a}}",
+            "{{b}}",
+            "{{b}}",
+            "{{a}}"
+          ]
+        },
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, 'weekly', 'I felt heard this week', 'sess-ab', '2026-01-01T00:00:00Z')",
+          "params": [
+            "{{a}}"
+          ]
+        },
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_relationship_checkin__submissions (member_id, submitted_at, session_id) VALUES (?, '2026-01-01T00:00:00Z', 'sess-ab')",
+          "params": [
+            "{{a}}"
+          ]
+        },
+        {
+          "action": "db",
+          "as": "b",
+          "sql": "SELECT member_id, answer FROM app_relationship_checkin__responses",
+          "expect": {
+            "status": 200,
+            "rowCount": 0
+          }
+        },
+        {
+          "action": "db",
+          "as": "b",
+          "sql": "SELECT member_id FROM app_relationship_checkin__submissions",
+          "expect": {
+            "status": 200,
+            "rowCount": 0
+          }
+        },
+        {
+          "action": "db",
+          "as": "a",
+          "sql": "SELECT question_id, answer FROM app_relationship_checkin__responses",
+          "expect": {
+            "status": 200,
+            "rowCount": 1,
+            "rowsContain": [
+              {
+                "question_id": "weekly",
+                "answer": "I felt heard this week"
+              }
+            ]
+          }
+        },
+        {
+          "action": "db",
+          "as": "b",
+          "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, 'weekly', 'forged', 'sess-ab', '2026-01-01T00:00:00Z')",
+          "params": [
+            "{{b}}"
+          ],
+          "expect": {
+            "status": 403,
+            "errorIncludes": "endpoint"
+          }
+        },
+        {
+          "action": "db",
+          "as": "a",
+          "sql": "UPDATE app_relationship_checkin__submissions SET revealed_at = '2026-01-02T00:00:00Z' WHERE member_id = ?",
+          "params": [
+            "{{a}}"
+          ],
+          "expect": {
+            "status": 403,
+            "errorIncludes": "endpoint"
+          }
+        },
+        {
+          "action": "db",
+          "as": "a",
+          "sql": "SELECT member_id, revealed_at FROM app_relationship_checkin__submissions",
+          "expect": {
+            "status": 200,
+            "rowCount": 1,
+            "rowsContain": [
+              {
+                "member_id": "scn-a",
+                "revealed_at": null
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "a member cannot pair themselves by writing partner_config directly",
+      "members": {
+        "a": "adult",
+        "b": "adult"
+      },
+      "steps": [
+        {
+          "action": "db",
+          "as": "a",
+          "sql": "INSERT INTO app_relationship_checkin__partner_config (member_id, partner_id, session_id) VALUES (?, ?, ?)",
+          "params": [
+            "{{a}}",
+            "{{b}}",
+            "sess-forged"
+          ],
+          "expect": {
+            "status": 403,
+            "errorIncludes": "endpoint"
+          }
+        },
+        {
+          "action": "db",
+          "as": "a",
+          "sql": "SELECT member_id FROM app_relationship_checkin__partner_config",
+          "expect": {
+            "status": 200,
+            "rowCount": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "custom prompts are shared with the reciprocal partner only, and only the author can delete one",
+      "members": {
+        "a": "adult",
+        "b": "adult",
+        "outsider": "adult"
+      },
+      "steps": [
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_relationship_checkin__partner_config (member_id, partner_id, session_id) VALUES (?, ?, 'sess-ab'), (?, ?, 'sess-ab')",
+          "params": [
+            "{{a}}",
+            "{{b}}",
+            "{{b}}",
+            "{{a}}"
+          ]
+        },
+        {
+          "action": "db",
+          "as": "a",
+          "sql": "INSERT INTO app_relationship_checkin__custom_questions (id, created_by, text, session_id, created_at) VALUES ('q1', ?, 'What made you laugh this week?', ?, '2026-01-01T00:00:00Z')",
+          "params": [
+            "{{a}}",
+            "sess-ab"
+          ],
+          "expect": {
+            "status": 200
+          }
+        },
+        {
+          "action": "db",
+          "as": "b",
+          "sql": "SELECT id, text FROM app_relationship_checkin__custom_questions",
+          "expect": {
+            "status": 200,
+            "rowCount": 1,
+            "rowsContain": [
+              {
+                "id": "q1",
+                "text": "What made you laugh this week?"
+              }
+            ]
+          }
+        },
+        {
+          "action": "db",
+          "as": "outsider",
+          "sql": "SELECT id FROM app_relationship_checkin__custom_questions",
+          "expect": {
+            "status": 200,
+            "rowCount": 0
+          }
+        },
+        {
+          "action": "db",
+          "as": "b",
+          "sql": "DELETE FROM app_relationship_checkin__custom_questions WHERE id = 'q1'"
+        },
+        {
+          "action": "db",
+          "as": "a",
+          "sql": "SELECT id FROM app_relationship_checkin__custom_questions",
+          "expect": {
+            "status": 200,
+            "rowCount": 1,
+            "rowsContain": [
+              {
+                "id": "q1"
+              }
+            ]
+          }
+        },
+        {
+          "action": "db",
+          "as": "a",
+          "sql": "DELETE FROM app_relationship_checkin__custom_questions WHERE id = 'q1'",
+          "expect": {
+            "status": 200
+          }
+        },
+        {
+          "action": "db",
+          "as": "b",
+          "sql": "SELECT id FROM app_relationship_checkin__custom_questions",
+          "expect": {
+            "status": 200,
+            "rowCount": 0
+          }
+        }
+      ]
+    }
+  ]
+}
