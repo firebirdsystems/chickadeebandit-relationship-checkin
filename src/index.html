@@ -52,7 +52,7 @@
     .customs { margin-top: 8px; }
     .custom-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .85rem; padding: 6px 0; border-top: 1px dashed var(--border); }
     .link { background: none; border: 0; color: var(--accent); font: inherit; font-weight: 700; cursor: pointer; padding: 0; }
-    .waiting-emoji { font-size: 2.4rem; }
+    .waiting-emoji { margin-bottom: 6px; }
     .error { background: var(--hub-tint-danger, #fee2e2); color: var(--hub-tint-danger-fg, #b91c1c); padding: 9px 12px; border-radius: 10px; margin-bottom: 12px; font-size: .86rem; }
     .modal-backdrop { position: fixed; inset: 0; background: rgba(60,10,40,.4); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 50; }
     .modal { background: var(--surface); border-radius: 14px; padding: 20px; width: 100%; max-width: 420px; box-shadow: 0 12px 40px rgba(0,0,0,.25); }
@@ -67,7 +67,7 @@
 </div>
 
 <script type="module">
-import { esc, hubConfirm, hubToday } from "/hub-sdk.js";
+import { esc, hubConfirm, hubToday, glyph, chickadee } from "/hub-sdk.js";
 
 // The household's calendar day as a Date, for the pure helpers in logic.js.
 // Those helpers default their date parameter to `new Date()` — the VIEWER
@@ -322,7 +322,7 @@ function showError(m) { error = m; const box = document.getElementById("err"); i
 function shell(inner, view) {
   return `
     <div class="head">
-      <h1>💬 Relationship Check-In</h1>
+      <h1>${glyph("messages")} Relationship Check-In</h1>
       <p class="muted tiny">Answer privately, then reveal together.</p>
     </div>
     <div id="err" class="error" style="display:${error ? "block" : "none"}">${esc(error)}</div>
@@ -351,7 +351,7 @@ function renderSetup() {
 function renderWaitingReciprocal() {
   return shell(`
     <div class="card center">
-      <div class="waiting-emoji">💌</div>
+      <div class="waiting-emoji">${chickadee("waiting", { size: 72 })}</div>
       <h2>Waiting for ${esc(partner?.name ?? "your partner")}</h2>
       <p class="muted">You've chosen them. Once they choose you back, you can start your first check-in.</p>
       <button class="btn btn-ghost btn-sm" data-refresh style="margin-top:10px;">Check again</button>
@@ -387,7 +387,7 @@ function renderQuestionnaire() {
 function renderWaitingPartner() {
   return shell(`
     <div class="card center">
-      <div class="waiting-emoji">🔒</div>
+      <div class="waiting-emoji">${chickadee("locked", { size: 72 })}</div>
       <h2>Locked in!</h2>
       <p class="muted">Your answers are sealed. We'll reveal them the moment ${esc(partner?.name ?? "your partner")} locks in too.</p>
       <button class="btn btn-ghost btn-sm" data-refresh style="margin-top:10px;">Check again</button>
@@ -400,7 +400,7 @@ function renderRevealGate() {
   if (iRevealed) {
     return shell(`
       <div class="card center">
-        <div class="waiting-emoji">✨</div>
+        <div class="waiting-emoji">${chickadee("waiting", { size: 72 })}</div>
         <h2>Ready when they are</h2>
         <p class="muted">You've revealed. As soon as ${esc(partner?.name ?? "your partner")} taps reveal, you'll see each other's answers.</p>
         <button class="btn btn-ghost btn-sm" data-refresh style="margin-top:10px;">Check again</button>
@@ -409,7 +409,7 @@ function renderRevealGate() {
   }
   return shell(`
     <div class="card center">
-      <div class="waiting-emoji">💞</div>
+      <div class="waiting-emoji">${chickadee("pair", { size: 72 })}</div>
       <h2>You're both locked in</h2>
       <p class="muted">Reveal together to see each other's answers at the same time.</p>
       <button class="btn btn-block" id="reveal-btn" data-reveal style="margin-top:12px;">Reveal together</button>
@@ -421,7 +421,7 @@ function renderResults() {
   const qs = questions();
   return shell(`
     <div class="card center">
-      <h2>Your check-in 💞</h2>
+      <h2>Your check-in ${glyph("two-hearts")}</h2>
       <p class="muted tiny">No scoring, no right answers — just a place to start talking.</p>
     </div>
     ${qs.map(q => `
