@@ -127,13 +127,26 @@ async function loadMembers() {
   catch { members = []; }
 }
 
+// Who I am paired with, and where the check-in stands, in one request. The
+// reveal status names the partner, the session and whether the pairing is
+// mutual beside both submissions — everything the separate partner lookup
+// returned — so opening the app no longer asks for the partner and then, once
+// that has answered, for a status that re-reads the same pairing.
 async function loadPartner() {
-  if (!ME) { partner = members.find(m => m.id !== "demo-1") ?? null; partnerReciprocal = true; partnerSessionId = "demo-session"; return; }
-  const res = await fetch(api("partner"));
+  if (!ME) { partner = members.find(m => m.id !== "demo-1") ?? { id: "demo-2", name: "Sam" }; partnerReciprocal = true; partnerSessionId = "demo-session"; return; }
+  const res = await fetch(api("mutual-reveal"));
   const s = res.ok ? await res.json() : { partner_id: null, reciprocal: false };
   partnerReciprocal = !!s.reciprocal;
   partnerSessionId = s.session_id ?? null;
-  partner = s.partner_id ? (members.find(m => m.id === s.partner_id) ?? { id: s.partner_id, name: "Partner" }) : null;
+  mySubmission = s.mine ?? null;
+  partnerSubmission = s.theirs ?? null;
+  if (s.partner_answers) partnerAnswers = s.partner_answers;
+  partner = s.partner_id ? { id: s.partner_id, name: "Partner" } : null;
+}
+
+/** The partner as a household member, once the member list is in. */
+function namePartner() {
+  if (partner) partner = members.find(m => m.id === partner.id) ?? partner;
 }
 
 async function loadStatus() {
@@ -151,7 +164,11 @@ async function loadStatus() {
 async function loadCustoms() {
   if (!DB) { customs = []; return; }
   try {
-    const r = await db("SELECT id, text, created_by, created_at FROM app_relationship_checkin__custom_questions WHERE session_id = ? ORDER BY created_at ASC", [partnerSessionId]);
+    // The session comes from my own partner_config row, by a join, so this
+    // read (and the one for my answers) waits on nothing and takes only my
+    // member id: the hub can answer both from the document. The text must
+    // match manifest.preload exactly.
+    const r = await db("SELECT q.id, q.text, q.created_by, q.created_at FROM app_relationship_checkin__custom_questions q JOIN app_relationship_checkin__partner_config p ON p.session_id = q.session_id WHERE p.member_id = ? ORDER BY q.created_at ASC", [ME?.id ?? null]);
     customs = r.rows;
   } catch { customs = []; }
 }
@@ -159,7 +176,7 @@ async function loadCustoms() {
 async function loadMyAnswers() {
   if (!DB || !ME) return;
   try {
-    const r = await db("SELECT question_id, answer FROM app_relationship_checkin__responses WHERE member_id = ? AND session_id = ?", [ME.id, partnerSessionId]);
+    const r = await db("SELECT r.question_id, r.answer FROM app_relationship_checkin__responses r JOIN app_relationship_checkin__partner_config p ON p.member_id = r.member_id AND p.session_id = r.session_id WHERE r.member_id = ?", [ME.id]);
     myAnswers = Object.fromEntries(r.rows.map(x => [x.question_id, x.answer]));
   } catch { myAnswers = {}; }
 }
@@ -167,12 +184,10 @@ async function loadMyAnswers() {
 async function refresh() {
   error = "";
   try {
-    await loadMembers();
-    await loadPartner();
-    if (partner && partnerReciprocal) {
-      await loadStatus();
-      await Promise.all([loadCustoms(), loadMyAnswers()]);
-    }
+    // None of these waits on another. Someone not yet paired gets no prompts
+    // and no answers back, which is what the setup screen shows anyway.
+    await Promise.all([loadMembers(), loadPartner(), loadCustoms(), loadMyAnswers()]);
+    namePartner();
     route();
   } catch (e) { error = e.message; render(renderSetup()); }
 }
@@ -487,7 +502,7 @@ document.addEventListener("click", (e) => {
 });
 
 async function loadStatusAndRoute() {
-  try { await loadPartner(); if (partner && partnerReciprocal) { await loadStatus(); await Promise.all([loadCustoms(), loadMyAnswers()]); } route(); }
+  try { await Promise.all([loadPartner(), loadCustoms(), loadMyAnswers()]); namePartner(); route(); }
   catch (e) { showError(e.message); }
 }
 

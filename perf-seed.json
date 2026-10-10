@@ -1,0 +1,376 @@
+{
+ "seed": [
+  {
+   "sql": "INSERT INTO app_relationship_checkin__partner_config (member_id, partner_id, session_id) VALUES (?, ?, ?)",
+   "params": [
+    "{{me}}",
+    "{{partner}}",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__partner_config (member_id, partner_id, session_id) VALUES (?, ?, ?)",
+   "params": [
+    "{{partner}}",
+    "{{me}}",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__custom_questions (id, created_by, text, session_id, created_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-85 days','+0 minutes'))",
+   "params": [
+    "perf-cq-01",
+    "{{me}}",
+    "What should we do differently next week?",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 days','+0 minutes'))",
+   "params": [
+    "{{me}}",
+    "perf-cq-01",
+    "Phones away after nine, both of us",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-0.6 days','+0 minutes'))",
+   "params": [
+    "{{partner}}",
+    "perf-cq-01",
+    "Plan the meals on Sunday so weeknights are calmer",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__custom_questions (id, created_by, text, session_id, created_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-78.5 days','+0 minutes'))",
+   "params": [
+    "perf-cq-02",
+    "{{partner}}",
+    "What made you laugh this week?",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 days','+1 minutes'))",
+   "params": [
+    "{{me}}",
+    "perf-cq-02",
+    "You trying to parallel park outside the bakery",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-0.6 days','+1 minutes'))",
+   "params": [
+    "{{partner}}",
+    "perf-cq-02",
+    "The dog stealing your sock mid-meeting",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__custom_questions (id, created_by, text, session_id, created_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-72 days','+0 minutes'))",
+   "params": [
+    "perf-cq-03",
+    "{{me}}",
+    "Where did you feel most supported?",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 days','+2 minutes'))",
+   "params": [
+    "{{me}}",
+    "perf-cq-03",
+    "When you took the school run on Thursday without me asking",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-0.6 days','+2 minutes'))",
+   "params": [
+    "{{partner}}",
+    "perf-cq-03",
+    "You listened to the whole work saga and did not try to fix it",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__custom_questions (id, created_by, text, session_id, created_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-65.5 days','+0 minutes'))",
+   "params": [
+    "perf-cq-04",
+    "{{partner}}",
+    "What is one thing I did that you appreciated?",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 days','+3 minutes'))",
+   "params": [
+    "{{me}}",
+    "perf-cq-04",
+    "The coffee by the bed on Monday",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-0.6 days','+3 minutes'))",
+   "params": [
+    "{{partner}}",
+    "perf-cq-04",
+    "You booked the dentist for everyone",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__custom_questions (id, created_by, text, session_id, created_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-59 days','+0 minutes'))",
+   "params": [
+    "perf-cq-05",
+    "{{me}}",
+    "What is weighing on you right now?",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 days','+4 minutes'))",
+   "params": [
+    "{{me}}",
+    "perf-cq-05",
+    "The deadline at the end of the month",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-0.6 days','+4 minutes'))",
+   "params": [
+    "{{partner}}",
+    "perf-cq-05",
+    "Mum's appointment next week",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__custom_questions (id, created_by, text, session_id, created_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-52.5 days','+0 minutes'))",
+   "params": [
+    "perf-cq-06",
+    "{{partner}}",
+    "What do you want more of from me?",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 days','+5 minutes'))",
+   "params": [
+    "{{me}}",
+    "perf-cq-06",
+    "Unplanned evenings out, just us",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-0.6 days','+5 minutes'))",
+   "params": [
+    "{{partner}}",
+    "perf-cq-06",
+    "A heads up when your day is going badly",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__custom_questions (id, created_by, text, session_id, created_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-46 days','+0 minutes'))",
+   "params": [
+    "perf-cq-07",
+    "{{me}}",
+    "What are you looking forward to?",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 days','+6 minutes'))",
+   "params": [
+    "{{me}}",
+    "perf-cq-07",
+    "The long weekend at the lake",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-0.6 days','+6 minutes'))",
+   "params": [
+    "{{partner}}",
+    "perf-cq-07",
+    "Finishing the deck and sitting on it",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__custom_questions (id, created_by, text, session_id, created_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-39.5 days','+0 minutes'))",
+   "params": [
+    "perf-cq-08",
+    "{{partner}}",
+    "Is there something we keep avoiding?",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 days','+7 minutes'))",
+   "params": [
+    "{{me}}",
+    "perf-cq-08",
+    "The budget for the kitchen",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-0.6 days','+7 minutes'))",
+   "params": [
+    "{{partner}}",
+    "perf-cq-08",
+    "Talking about whose family we see at Christmas",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__custom_questions (id, created_by, text, session_id, created_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-33 days','+0 minutes'))",
+   "params": [
+    "perf-cq-09",
+    "{{me}}",
+    "How did we do on money this month?",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 days','+8 minutes'))",
+   "params": [
+    "{{me}}",
+    "perf-cq-09",
+    "Better than last month, the grocery plan helped",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-0.6 days','+8 minutes'))",
+   "params": [
+    "{{partner}}",
+    "perf-cq-09",
+    "Fine, but the car repair stung",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__custom_questions (id, created_by, text, session_id, created_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-26.5 days','+0 minutes'))",
+   "params": [
+    "perf-cq-10",
+    "{{partner}}",
+    "What should our next date be?",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 days','+9 minutes'))",
+   "params": [
+    "{{me}}",
+    "perf-cq-10",
+    "The noodle place, then a walk by the river",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-0.6 days','+9 minutes'))",
+   "params": [
+    "{{partner}}",
+    "perf-cq-10",
+    "A film with no children's characters in it",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__custom_questions (id, created_by, text, session_id, created_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-20 days','+0 minutes'))",
+   "params": [
+    "perf-cq-11",
+    "{{me}}",
+    "When did you feel closest to me this week?",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 days','+10 minutes'))",
+   "params": [
+    "{{me}}",
+    "perf-cq-11",
+    "Cooking together on Saturday",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-0.6 days','+10 minutes'))",
+   "params": [
+    "{{partner}}",
+    "perf-cq-11",
+    "The walk after dinner on Tuesday",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__custom_questions (id, created_by, text, session_id, created_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-13.5 days','+0 minutes'))",
+   "params": [
+    "perf-cq-12",
+    "{{partner}}",
+    "What is one small thing I could do tomorrow?",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 days','+11 minutes'))",
+   "params": [
+    "{{me}}",
+    "perf-cq-12",
+    "Take the bins out before I notice",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-0.6 days','+11 minutes'))",
+   "params": [
+    "{{partner}}",
+    "perf-cq-12",
+    "Send me a message at lunch",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 days','+20 minutes'))",
+   "params": [
+    "{{me}}",
+    "weekly",
+    "I felt heard this week, especially on Wednesday night",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__responses (member_id, question_id, answer, session_id, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-0.6 days','+20 minutes'))",
+   "params": [
+    "{{partner}}",
+    "weekly",
+    "Busy, but we still made time for each other",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__submissions (member_id, submitted_at, revealed_at, session_id) VALUES (?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 days','+25 minutes'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-0.5 days','+0 minutes'), ?)",
+   "params": [
+    "{{me}}",
+    "perf-sess-me-partner"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_relationship_checkin__submissions (member_id, submitted_at, revealed_at, session_id) VALUES (?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-0.6 days','+25 minutes'), strftime('%Y-%m-%dT%H:%M:%fZ','now','-0.5 days','+0 minutes'), ?)",
+   "params": [
+    "{{partner}}",
+    "perf-sess-me-partner"
+   ]
+  }
+ ]
+}

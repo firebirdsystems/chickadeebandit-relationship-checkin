@@ -108,5 +108,15 @@
   "kiosk": "never",
   "resource_limits": {
     "max_db_bytes": 10485760
+  },
+  "preload": {
+    "custom_questions": {
+      "sql": "SELECT q.id, q.text, q.created_by, q.created_at FROM app_relationship_checkin__custom_questions q JOIN app_relationship_checkin__partner_config p ON p.session_id = q.session_id WHERE p.member_id = ? ORDER BY q.created_at ASC",
+      "params": [":me"]
+    },
+    "my_answers": {
+      "sql": "SELECT r.question_id, r.answer FROM app_relationship_checkin__responses r JOIN app_relationship_checkin__partner_config p ON p.member_id = r.member_id AND p.session_id = r.session_id WHERE r.member_id = ?",
+      "params": [":me"]
+    }
   }
 }
