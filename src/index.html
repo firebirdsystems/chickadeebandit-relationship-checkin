@@ -179,7 +179,7 @@ async function loadCustoms() {
     // match manifest.preload exactly.
     const r = await db("SELECT q.id, q.text, q.created_by, q.created_at FROM app_relationship_checkin__custom_questions q JOIN app_relationship_checkin__partner_config p ON p.session_id = q.session_id WHERE p.member_id = ? ORDER BY q.created_at ASC", [ME?.id ?? null]);
     customs = r.rows;
-  } catch (e) { customs = []; error = e.message; dataLoadFailed = true; }
+  } catch (e) { customs = []; console.error(e); error = "Couldn’t load your prompts."; dataLoadFailed = true; }
 }
 
 async function loadMyAnswers() {
@@ -187,7 +187,7 @@ async function loadMyAnswers() {
   try {
     const r = await db("SELECT r.question_id, r.answer FROM app_relationship_checkin__responses r JOIN app_relationship_checkin__partner_config p ON p.member_id = r.member_id AND p.session_id = r.session_id WHERE r.member_id = ?", [ME.id]);
     myAnswers = Object.fromEntries(r.rows.map(x => [x.question_id, x.answer]));
-  } catch (e) { myAnswers = {}; error = e.message; dataLoadFailed = true; }
+  } catch (e) { myAnswers = {}; console.error(e); error = "Couldn’t load your answers."; dataLoadFailed = true; }
 }
 
 // Set when the prompts or my answers could not be read.
@@ -224,7 +224,7 @@ async function savePartner(partnerId) {
     if (!ME) { partnerReciprocal = true; partnerSessionId = "demo-session"; }
     if (partner && partnerReciprocal) await Promise.all([loadStatus(), loadCustoms(), loadMyAnswers()]);
     route();
-  } catch (e) { showError(e.message); }
+  } catch (e) { console.error(e); showError("Couldn’t save your partner — try again."); }
 }
 
 async function lockIn() {
@@ -251,7 +251,7 @@ async function lockIn() {
     route();
   } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = "Lock in my answers"; }
-    showError(e.message);
+    console.error(e); showError("Couldn’t lock in your answers — try again.");
   }
 }
 
@@ -272,7 +272,7 @@ async function reveal() {
     route();
   } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = "Reveal together"; }
-    showError(e.message);
+    console.error(e); showError("Couldn’t reveal the answers — try again.");
   }
 }
 
@@ -283,7 +283,7 @@ async function startNew() {
     if (ME) await post("mutual-reveal", { action: "reset" });
     myAnswers = {}; mySubmission = null; partnerSubmission = null; partnerAnswers = {};
     route();
-  } catch (e) { showError(e.message); }
+  } catch (e) { console.error(e); showError("Couldn’t start a fresh check-in — try again."); }
 }
 
 async function addCustom(text) {
@@ -301,7 +301,7 @@ async function addCustom(text) {
     customs = [...customs, row];
     closeModal();
     route();
-  } catch (e) { showError(e.message); }
+  } catch (e) { console.error(e); showError("Couldn’t add the prompt — try again."); }
 }
 
 /**
@@ -330,7 +330,7 @@ async function removeCustom(id) {
     customs = customs.filter(c => c.id !== id);
     delete myAnswers[id];
     route();
-  } catch (e) { showError(e.message); }
+  } catch (e) { console.error(e); showError("Couldn’t remove the prompt — try again."); }
 }
 
 // ── polling on waiting screens ───────────────────────────────────────────────
@@ -536,7 +536,7 @@ document.addEventListener("click", (e) => {
 
 async function loadStatusAndRoute() {
   try { await Promise.all([loadPartner(), loadCustoms(), loadMyAnswers()]); namePartner(); route(); }
-  catch (e) { showError(e.message); }
+  catch (e) { console.error(e); showError("Couldn’t load your check-in."); }
 }
 
 function openCustomModal() {
