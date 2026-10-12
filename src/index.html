@@ -57,6 +57,8 @@
     .modal-backdrop { position: fixed; inset: 0; background: rgba(60,10,40,.4); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 50; }
     .modal { background: var(--surface); border-radius: 14px; padding: 20px; width: 100%; max-width: 420px; box-shadow: 0 12px 40px rgba(0,0,0,.25); }
     .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+    .load-error { margin: 0 0 12px; padding: 10px 14px; border-radius: 10px; background: var(--hub-tint-danger, #fee2e2); color: var(--hub-tint-danger-fg, #b91c1c); font-size: .9rem; display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+    .load-error-retry { background: none; border: 1px solid currentColor; border-radius: 8px; padding: 4px 10px; color: inherit; font: inherit; cursor: pointer; white-space: nowrap; }
     .char-count { text-align: right; font-size: .74rem; color: var(--muted); margin-top: 4px; }
   </style>
   <base href="/run/relationship-checkin/">
@@ -105,8 +107,8 @@ function api(path) { return `/run/${APP_ID}/api/${path}`; }
 async function db(sql, params = []) {
   if (!DB) return { rows: [] };
   const res = await fetch(DB, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sql, params }) });
-  const json = await res.json();
-  if (json.error) throw new Error(json.error);
+  const json = await res.json().catch(() => null);
+  if (!res.ok || !json || typeof json !== "object" || json.error) throw new Error(json?.error || "Couldn’t reach the hub. Try again.");
   return json;
 }
 
@@ -123,8 +125,10 @@ async function loadMembers() {
     members = [{ id: "demo-1", name: "You", role: "adult" }, { id: "demo-2", name: "Sam", role: "adult" }];
     return;
   }
-  try { const r = await fetch(`${CONTEXT}?keys=family.members`); members = ((await r.json())["family.members"]) ?? []; }
-  catch { members = []; }
+  const r = await fetch(`${CONTEXT}?keys=family.members`);
+  const ctx = await r.json().catch(() => null);
+  if (!r.ok || !ctx || typeof ctx !== "object" || ctx.$errors?.length) throw new Error("Couldn’t reach the hub. Try again.");
+  members = ctx["family.members"] ?? [];
 }
 
 // Who I am paired with, and where the check-in stands, in one request. The
@@ -135,7 +139,12 @@ async function loadMembers() {
 async function loadPartner() {
   if (!ME) { partner = members.find(m => m.id !== "demo-1") ?? { id: "demo-2", name: "Sam" }; partnerReciprocal = true; partnerSessionId = "demo-session"; return; }
   const res = await fetch(api("mutual-reveal"));
-  const s = res.ok ? await res.json() : { partner_id: null, reciprocal: false };
+  // An unpaired member is answered 200 with partner_id null. Any other answer
+  // is a failed read and throws: it is not "no partner yet", and setup must not
+  // be drawn as though the pairing were gone.
+  if (!res.ok) throw new Error("Couldn’t reach the hub. Try again.");
+  const s = await res.json();
+  if (!s || typeof s !== "object" || !("partner_id" in s)) throw new Error("Couldn’t reach the hub. Try again.");
   partnerReciprocal = !!s.reciprocal;
   partnerSessionId = s.session_id ?? null;
   mySubmission = s.mine ?? null;
@@ -170,7 +179,7 @@ async function loadCustoms() {
     // match manifest.preload exactly.
     const r = await db("SELECT q.id, q.text, q.created_by, q.created_at FROM app_relationship_checkin__custom_questions q JOIN app_relationship_checkin__partner_config p ON p.session_id = q.session_id WHERE p.member_id = ? ORDER BY q.created_at ASC", [ME?.id ?? null]);
     customs = r.rows;
-  } catch { customs = []; }
+  } catch (e) { customs = []; error = e.message; dataLoadFailed = true; }
 }
 
 async function loadMyAnswers() {
@@ -178,18 +187,27 @@ async function loadMyAnswers() {
   try {
     const r = await db("SELECT r.question_id, r.answer FROM app_relationship_checkin__responses r JOIN app_relationship_checkin__partner_config p ON p.member_id = r.member_id AND p.session_id = r.session_id WHERE r.member_id = ?", [ME.id]);
     myAnswers = Object.fromEntries(r.rows.map(x => [x.question_id, x.answer]));
-  } catch { myAnswers = {}; }
+  } catch (e) { myAnswers = {}; error = e.message; dataLoadFailed = true; }
 }
 
+// Set when the prompts or my answers could not be read.
+let dataLoadFailed = false;
+
+// The first load. When the pairing, or the prompts and answers asked for
+// beside it, cannot be read, only a banner with a retry is drawn: no setup
+// screen, and no questionnaire with prompts or answers missing.
 async function refresh() {
   error = "";
+  dataLoadFailed = false;
+  stopPolling();
   try {
     // None of these waits on another. Someone not yet paired gets no prompts
     // and no answers back, which is what the setup screen shows anyway.
     await Promise.all([loadMembers(), loadPartner(), loadCustoms(), loadMyAnswers()]);
-    namePartner();
-    route();
-  } catch (e) { error = e.message; render(renderSetup()); }
+  } catch { error = ""; return render(renderLoadError("your partner")); }
+  if (dataLoadFailed) { error = ""; return render(renderLoadError("your check-in")); }
+  namePartner();
+  route();
 }
 
 function questions() { return buildQuestions(customs, hubDay()); }
@@ -298,7 +316,17 @@ async function addCustom(text) {
  */
 async function removeCustom(id) {
   try {
-    if (DB) await db("DELETE FROM app_relationship_checkin__custom_questions WHERE id = ?", [id]);
+    if (DB) {
+      const res = await db("DELETE FROM app_relationship_checkin__custom_questions WHERE id = ?", [id]);
+      // Only the partner who wrote a prompt may remove it; the hub answers
+      // anyone else with zero rows rather than an error.
+      if (!Number(res.changed ?? 0)) {
+        await loadCustoms();
+        route();
+        showError("That prompt could not be removed.");
+        return;
+      }
+    }
     customs = customs.filter(c => c.id !== id);
     delete myAnswers[id];
     route();
@@ -343,6 +371,10 @@ function shell(inner, view) {
     <div id="err" class="error" style="display:${error ? "block" : "none"}">${esc(error)}</div>
     <div data-testid="view-${view}">${inner}</div>
   `;
+}
+
+function renderLoadError(thing) {
+  return shell(`<div class="load-error" data-testid="load-error" role="alert"><span>Couldn’t load ${thing}.</span> <button type="button" class="load-error-retry" data-testid="load-retry">Try again</button></div>`, "load-error");
 }
 
 function renderSetup() {
@@ -488,6 +520,7 @@ document.addEventListener("click", (e) => {
     if (!sel) { showError("Choose your partner first."); return; }
     savePartner(sel.value); return;
   }
+  if (t.classList.contains("load-error-retry")) { refresh(); return; }
   if (t.hasAttribute("data-refresh")) { loadStatusAndRoute(); return; }
   if (t.hasAttribute("data-lockin")) { lockIn(); return; }
   if (t.hasAttribute("data-reveal")) { reveal(); return; }
