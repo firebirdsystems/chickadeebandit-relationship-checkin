@@ -180,7 +180,10 @@ async function loadCustoms() {
     // match manifest.preload exactly.
     const r = await db("SELECT q.id, q.text, q.created_by, q.created_at FROM app_relationship_checkin__custom_questions q JOIN app_relationship_checkin__partner_config p ON p.session_id = q.session_id WHERE p.member_id = ? ORDER BY q.created_at ASC", [ME?.id ?? null]);
     customs = r.rows;
-  } catch (e) { customs = []; console.error(e); error = "Couldn’t load your prompts."; dataLoadFailed = true; }
+  } catch (e) {
+    // A failed read keeps the prompts already on screen.
+    console.error(e); error = "Couldn’t load your prompts."; dataLoadFailed = true;
+  }
 }
 
 async function loadMyAnswers() {
