@@ -81,7 +81,7 @@ import { esc, hubConfirm, hubToday, glyph, chickadee } from "/hub-sdk.js";
 // into an adjacent day.
 const hubDay = () => new Date(`${hubToday()}T12:00:00`);
 
-import { buildQuestions, allAnswered, answeredCount, weeklyPrompt } from "./logic.js";
+import { buildQuestions, allAnswered, answeredCount, weeklyPrompt, failureLine, readBackFirst, storedDiffers } from "./logic.js";
 
 const APP_ID = window.__APP_ID ?? "relationship-checkin";
 const CONTEXT = window.__CONTEXT_URL ?? "";
@@ -108,14 +108,15 @@ async function db(sql, params = []) {
   if (!DB) return { rows: [] };
   const res = await fetch(DB, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sql, params }) });
   const json = await res.json().catch(() => null);
-  if (!res.ok || !json || typeof json !== "object" || json.error) throw new Error(json?.error || "Couldn’t reach the hub. Try again.");
+  // The status (and `code`) pick the line shown; the hub's text stays in the console.
+  if (!res.ok || !json || typeof json !== "object" || json.error) throw Object.assign(new Error(json?.error || "Couldn’t reach the hub. Try again."), { status: res.status, code: json?.code });
   return json;
 }
 
 async function post(path, body) {
   const res = await fetch(api(path), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json.error ?? "Request failed");
+  if (!res.ok) throw Object.assign(new Error(json.error ?? "Request failed"), { status: res.status, code: json.code });
   return json;
 }
 
@@ -224,7 +225,7 @@ async function savePartner(partnerId) {
     if (!ME) { partnerReciprocal = true; partnerSessionId = "demo-session"; }
     if (partner && partnerReciprocal) await Promise.all([loadStatus(), loadCustoms(), loadMyAnswers()]);
     route();
-  } catch (e) { console.error(e); showError("Couldn’t save your partner — try again."); }
+  } catch (e) { console.error(e); showError(failureLine(e, { action: "save your partner", thing: "partner" })); }
 }
 
 async function lockIn() {
@@ -251,8 +252,25 @@ async function lockIn() {
     route();
   } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = "Lock in my answers"; }
-    console.error(e); showError("Couldn’t lock in your answers — try again.");
+    console.error(e);
+    // A 409 (a prompt the partner added, or answers already locked by a try
+    // whose answer was lost) or an unknown outcome: re-read before saying anything.
+    if (ME && (e?.status === 409 || readBackFirst(e))) {
+      await rereadCheckin(true);
+      if (mySubmission?.submitted_at) { route(); return; }
+      route();
+    }
+    showError(failureLine(e, { action: "lock in your answers", thing: "check-in" }));
   }
+}
+
+// After a 409 or an unknown outcome: read the pairing and the check-in back so
+// the screen shows what is stored. A failed read keeps what is on screen.
+async function rereadCheckin(withCustoms) {
+  try {
+    await Promise.all([loadPartner(), withCustoms ? loadCustoms() : null]);
+    namePartner();
+  } catch (e) { console.error(e); }
 }
 
 async function reveal() {
@@ -272,7 +290,10 @@ async function reveal() {
     route();
   } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = "Reveal together"; }
-    console.error(e); showError("Couldn’t reveal the answers — try again.");
+    console.error(e);
+    // A 409: the pairing changed (or nothing is submitted); show the real state.
+    if (ME && e?.status === 409) { await rereadCheckin(false); route(); }
+    showError(failureLine(e, { action: "reveal the answers", thing: "check-in" }));
   }
 }
 
@@ -283,25 +304,44 @@ async function startNew() {
     if (ME) await post("mutual-reveal", { action: "reset" });
     myAnswers = {}; mySubmission = null; partnerSubmission = null; partnerAnswers = {};
     route();
-  } catch (e) { console.error(e); showError("Couldn’t start a fresh check-in — try again."); }
+  } catch (e) {
+    console.error(e);
+    if (ME && e?.status === 409) { await rereadCheckin(false); route(); }
+    showError(failureLine(e, { action: "start a fresh check-in", thing: "check-in" }));
+  }
 }
 
 async function addCustom(text) {
   const t = text.trim();
   if (!t) return;
-  const id = `custom-${crypto.randomUUID()}`;
-  const row = { id, text: t, created_by: ME?.id ?? "demo-1", created_at: nowIso() };
+  // The id is the open form's, minted on its first Add and sent on every retry:
+  // a try whose answer was lost may have stored the prompt.
+  const id = modalEl ? (modalEl.dataset.rowId ||= `custom-${crypto.randomUUID()}`) : `custom-${crypto.randomUUID()}`;
+  let row = { id, text: t, created_by: ME?.id ?? "demo-1", created_at: nowIso() };
+  let note = "";
   try {
     if (DB) {
-      await db(
-        "INSERT INTO app_relationship_checkin__custom_questions (id, created_by, text, session_id, created_at) VALUES (?, ?, ?, ?, ?)",
-        [id, row.created_by, t, partnerSessionId, row.created_at]
-      );
+      try {
+        await db(
+          "INSERT INTO app_relationship_checkin__custom_questions (id, created_by, text, session_id, created_at) VALUES (?, ?, ?, ?, ?)",
+          [id, row.created_by, t, partnerSessionId, row.created_at]
+        );
+      } catch (e) {
+        // Unknown outcome: read back by the pinned id. Found means an earlier try landed.
+        if (!readBackFirst(e)) throw e;
+        const stored = await db("SELECT id, text, created_by, created_at FROM app_relationship_checkin__custom_questions WHERE id = ?", [id])
+          .then(r => r.rows?.[0] ?? null, e2 => { console.error(e2); return null; });
+        if (!stored) throw e;
+        console.error(e);
+        if (storedDiffers(stored, { text: t })) note = "Added as first entered — remove it and add it again to change it.";
+        row = stored;
+      }
     }
-    customs = [...customs, row];
+    if (!customs.some(c => c.id === row.id)) customs = [...customs, row];
     closeModal();
     route();
-  } catch (e) { console.error(e); showError("Couldn’t add the prompt — try again."); }
+    if (note) showError(note);
+  } catch (e) { console.error(e); showError(failureLine(e, { action: "add the prompt", thing: "prompt" })); }
 }
 
 /**
@@ -321,16 +361,18 @@ async function removeCustom(id) {
       // Only the partner who wrote a prompt may remove it; the hub answers
       // anyone else with zero rows rather than an error.
       if (!Number(res.changed ?? 0)) {
+        dataLoadFailed = false;
         await loadCustoms();
+        const found = dataLoadFailed ? undefined : customs.some(c => c.id === id);
         route();
-        showError("That prompt could not be removed.");
+        showError(failureLine(null, { action: "remove the prompt", thing: "prompt", found }));
         return;
       }
     }
     customs = customs.filter(c => c.id !== id);
     delete myAnswers[id];
     route();
-  } catch (e) { console.error(e); showError("Couldn’t remove the prompt — try again."); }
+  } catch (e) { console.error(e); showError(failureLine(e, { action: "remove the prompt", thing: "prompt" })); }
 }
 
 // ── polling on waiting screens ───────────────────────────────────────────────

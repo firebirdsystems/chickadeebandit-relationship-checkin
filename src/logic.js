@@ -63,3 +63,38 @@ export function answeredCount(questions, answers) {
     return typeof a === "string" && a.trim().length > 0;
   }).length;
 }
+
+/**
+ * The line a failed write shows, from the error's status — never the hub's
+ * text. "Try again" only where trying again can work. `found` is the caller's
+ * re-read after a write that changed nothing (true: the row is still there).
+ */
+export function failureLine(e, { action, thing, found } = {}) {
+  if (e?.forUser) return e.message;
+  if (e?.code === "UNIQUE_CONSTRAINT" || /UNIQUE constraint failed/i.test(String(e?.message ?? ""))) return `That ${thing} already exists.`;
+  if (e?.status === 403) return `You don’t have permission to ${action}.`;
+  if (e?.status === 507) return "The household’s storage is full — free up space first.";
+  if (e?.status === 429) return "Too many tries — wait a minute and try again.";
+  if (found === false || (found === undefined && e?.status === 404)) return `This ${thing} has been removed.`;
+  if (found === true) return `You don’t have permission to ${action}.`;
+  if (e?.status === 409) return `This ${thing} was changed by someone else — check it first.`;
+  return `Couldn’t ${action} — try again.`;
+}
+
+/**
+ * "Retry after a lost response" (app-template guide): whether a failed create
+ * must be read back by its pinned id before anything is said — no status, a
+ * 400, a 5xx other than 507, or a UNIQUE answer (a retry of a create that
+ * landed collides on its own pinned id). A refusal the hub named is known.
+ */
+export function readBackFirst(e) {
+  if (e?.forUser) return false;
+  if (e?.code === "UNIQUE_CONSTRAINT" || /UNIQUE constraint failed/i.test(String(e?.message ?? ""))) return true;
+  const s = e?.status;
+  return s == null || s === 400 || (s >= 500 && s !== 507);
+}
+
+/** Whether a stored row differs from what the form now holds (compared as text, null as empty). */
+export function storedDiffers(row, fields) {
+  return Object.keys(fields).some((k) => String(row?.[k] ?? "") !== String(fields[k] ?? ""));
+}
